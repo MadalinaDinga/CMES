@@ -1,0 +1,68 @@
+/*
+UBB caretaker (UBB-ct) takes care that the student turns the lights off when he leaves:
+UBBct asks S to turn the lights off, S "finally" turns them off after he finished his work. */
+
+mtype = {turnLightsOff, notFinishedYet, readyToLeave}
+
+chan signal = [0] of {mtype};
+bool lights_off = false;
+bool request_made = false;
+
+active proctype UBB_ct() {
+	waiting: atomic {
+				printf("The UBB-ct requests the student to turn the lights off \n");
+		
+				signal!turnLightsOff;
+
+				request_made = false;
+				goto waitingAnswer;
+			   };	
+	waitingAnswer: 
+		if
+		:: signal?readyToLeave -> atomic {
+								printf("Student is ready to leave \n");
+								goto closing;
+		   					  };
+		:: signal?notFinishedYet -> atomic {
+								printf("Student has not finished work yet, must ask again \n");
+								goto waiting;
+								};            
+		fi;
+
+	closing:
+ 		atomic { lights_off = true;};
+}
+
+active proctype Student() {
+	
+	waiting: atomic {
+				signal?turnLightsOff -> {
+					printf("Student received the question \n");
+			
+					goto answering;
+			   }
+;
+	   }
+;
+	
+	answering: atomic {		
+		if 
+	        :: true -> atomic {signal!readyToLeave; goto closing;}
+	        :: true -> atomic {signal!notFinishedYet; goto waiting;}		
+		fi;
+	}
+;
+	
+	closing: {
+		lights_off = true;
+	}
+;
+};
+/* the lights will always ([]) eventually (<>) be turned off */
+ltl p1 { [](!lights_off-> <> lights_off)}
+/* always ([]), if the request was made, the lights will eventually (<>) be turned off */
+ltl p2 { [](request_made -> <> lights_off) }
+/* the lights will not be turned off until (U) the student is ready to leave */
+ltl p3 { [](!lights_off U !readyToLeave) }
+
+ 

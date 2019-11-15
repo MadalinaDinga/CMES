@@ -1,0 +1,71 @@
+/*
+Automated Irrigation System with Soil Moisture Sensor (SMS)*/
+
+mtype = { performHumidityCheck }
+
+chan signal_SMS_to_CTRL = [0] of {mtype, byte};
+chan signal_CTRL_to_SMS = [0] of {bool}
+bool humidityCheckRequired = false;
+bool checkComplete = true;
+byte threshold = 3; /*can be set*/
+byte humidity;
+
+active proctype SMS() {
+	waiting: atomic {
+				printf("SMS sends humidity measurement \n");
+		
+				signal_SMS_to_CTRL!performHumidityCheck,humidity;
+				
+				humidityCheckRequired = true;
+
+				goto waitingAnswer;
+			   };	
+	waitingAnswer: 
+		if
+		:: signal_CTRL_to_SMS?false -> atomic {
+								printf("Soil is wet enough, check finished \n");
+								goto complete;
+		   					  };
+
+		:: signal_CTRL_to_SMS?true -> atomic {
+								printf("Perform new check \n");
+								goto waiting;
+								};            
+		fi;
+    complete:
+ 		atomic { checkComplete = true;};
+}
+
+active proctype CTRL() {
+
+	waiting: atomic {
+				signal_SMS_to_CTRL?performHumidityCheck,humidity -> {
+					printf("CTRL received request \n");
+			
+					goto maintainingSoil;
+			   };
+	   };
+	
+	maintainingSoil: atomic {		
+		if 
+	        :: humidity >= threshold -> atomic {signal_CTRL_to_SMS!false; goto complete}
+	        :: humidity < threshold -> atomic {humidity++; signal_CTRL_to_SMS!true; goto waiting;}		
+		fi;
+	};
+	
+	complete: {
+		checkComplete = true;
+	}
+;
+};
+
+/* the check will eventually complete */
+ltl p1 { [](!checkComplete-> <> checkComplete)}
+
+/* if the request for humidity check was made, this will eventually be completed*/
+ltl p2 { [](humidityCheckRequired -> <> checkComplete) }
+
+/* eventually, after the check, the humidity will be greater or equal than the treshhold*/
+ltl p3 { [](<> (humidity < threshold == false) ) }
+
+ 
