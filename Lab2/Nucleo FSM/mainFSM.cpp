@@ -72,14 +72,13 @@ void loop(AnalogIn led, AnalogIn ledLight) {
         case STATE_CHECK_TEMP:
             float temperature = d.readTemperature();
             pc.printf("Temperature: %f \n", temperature);
-            
+            if (temperature > TEMP_UPPER_THRESHOLD){ 
+                pc.printf("Water the plants with a LOT of water! \n");  
+            }
             if(temperature < TEMP_LOWER_THRESHOLD){
                 pc.printf("Water the plants with just a BIT of water! \n");    
             }else{
                 pc.printf("Water the plants with NORMAL amount of water! \n");    
-            }
-            if(temperature > TEMP_UPPER_THRESHOLD){
-                pc.printf("Water the plants with a LOT of water! \n");  
             }
             fsm_state = STATE_IDLE; 
             break; 

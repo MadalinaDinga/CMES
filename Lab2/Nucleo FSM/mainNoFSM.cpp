@@ -3,9 +3,10 @@
 #include "DHT11.h" //temperature and humidity
 
 /* we assume plants are all located outside */
-
-const int moistureThreshold = 40;
-const float photodiodeThreshold = 2.0;
+const int MOISTURE_THRESHOLD = 40;
+const float PHOTODIODE_THRESHOLD = 2.0;
+const int TEMP_UPPER_THRESHOLD = 30;
+const int TEMP_LOWER_THRESHOLD = 10;
 
 PwmOut mypwm(PWM_OUT);  //soil
 DigitalOut myled(LED1); //soil
@@ -24,26 +25,26 @@ int main() {
         int moisturePercent = led.read() * 100;
             
         pc.printf("Moisture: %d < 40 ? \n", moisturePercent);
-        if(moisturePercent < moistureThreshold){
+        if(moisturePercent < MOISTURE_THRESHOLD){
             pc.printf("YES \n");
             
             float light = ledLight.read();
             
             pc.printf("Light: %f < 2.0 ? \n", light);
-            if(light < photodiodeThreshold){
+            if(light < PHOTODIODE_THRESHOLD){
                 pc.printf("YES \n");
                     
                 float temperature = d.readTemperature();
                 pc.printf("Temperature: %f \n", temperature);
-                                          
-                if(temperature < 10){
-                    pc.printf("Water the plants with just a bit of water! \n");    
-                }else{
-                    pc.printf("Water the plants with normal amount of water! \n");    
-                }
-                if(temperature > 30){
+                
+                if (temperature > TEMP_UPPER_THRESHOLD){ 
                     pc.printf("Water the plants with a LOT of water! \n");  
-                } 
+                }
+                if(temperature < TEMP_LOWER_THRESHOLD){
+                    pc.printf("Water the plants with just a BIT of water! \n");    
+                }else{
+                    pc.printf("Water the plants with NORMAL amount of water! \n");    
+                }                       
             }
         }
         
